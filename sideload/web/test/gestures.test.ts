@@ -1,0 +1,14 @@
+import { afterEach,describe,expect,it,vi } from 'vitest';
+import { GestureEngine,type GestureCallbacks } from '../src/gestures/engine';
+afterEach(()=>vi.useRealTimers());
+function engine(width=390,height=844) {const events={key:vi.fn(),hold:vi.fn(),volume:vi.fn(),back:vi.fn(),feedback:vi.fn()};return {events,g:new GestureEngine(events as GestureCallbacks,width,height)};}
+describe('gesture pointer sequences',()=>{
+  it.each([[195,422,'DPAD_CENTER'],[195,180,'DPAD_UP'],[195,700,'DPAD_DOWN'],[70,422,'DPAD_LEFT'],[300,422,'DPAD_RIGHT']])('classifies tap at %i,%i',(x,y,key)=>{const {g,events}=engine();g.down(1,{x:Number(x),y:Number(y)},0);g.up(1,100);expect(events.key).toHaveBeenCalledWith(key);});
+  it.each([[195,422,'center'],[195,180,'top'],[195,700,'bottom']])('fires a consumed 550ms hold at %i,%i',async(x,y,zone)=>{vi.useFakeTimers();const {g,events}=engine();g.down(1,{x:Number(x),y:Number(y)},0);await vi.advanceTimersByTimeAsync(550);g.up(1,600);expect(events.hold).toHaveBeenCalledWith(zone);expect(events.key).not.toHaveBeenCalled();});
+  it('cancels hold after movement even if pointer returns',async()=>{vi.useFakeTimers();const {g,events}=engine();g.down(1,{x:195,y:422},0);g.move(1,{x:220,y:422});g.move(1,{x:195,y:422});await vi.advanceTimersByTimeAsync(600);g.up(1,700);expect(events.hold).not.toHaveBeenCalled();expect(events.key).not.toHaveBeenCalled();});
+  it('emits one volume delta per 5px crossing including reversal',()=>{const {g,events}=engine();g.down(1,{x:380,y:400},0);g.move(1,{x:380,y:384});g.move(1,{x:380,y:390});g.up(1,200);expect(events.volume.mock.calls).toEqual([[3],[-1]]);expect(events.key).not.toHaveBeenCalled();});
+  it('fires back once at 90px, rejects a mostly vertical swipe',()=>{const {g,events}=engine();g.down(1,{x:5,y:400},0);g.move(1,{x:94,y:401});expect(events.key).not.toHaveBeenCalled();g.move(1,{x:95,y:401});g.move(1,{x:130,y:401});g.up(1,250);expect(events.key).toHaveBeenCalledExactlyOnceWith('BACK');g.down(2,{x:5,y:400},300);g.move(2,{x:100,y:600});g.up(2,450);expect(events.key).toHaveBeenCalledTimes(1);});
+  it('ignores extra pointers and cancels without a key',()=>{const {g,events}=engine();g.down(1,{x:195,y:422},0);expect(g.down(2,{x:195,y:180},1)).toBe(false);g.up(2,100);g.cancel(1);g.up(1,150);expect(events.key).not.toHaveBeenCalled();});
+  it('scales the edge and center hit areas',()=>{const {g}=engine(780,1688);expect(g.region({x:390,y:844})).toBe('center');expect(g.region({x:680,y:844})).toBe('volume');expect(g.region({x:45,y:844})).toBe('back');});
+  it('ignores slow taps and holds on horizontal quadrants',async()=>{vi.useFakeTimers();const {g,events}=engine();g.down(1,{x:70,y:422},0);await vi.advanceTimersByTimeAsync(600);g.up(1,600);expect(events.key).not.toHaveBeenCalled();expect(events.hold).not.toHaveBeenCalled();});
+});

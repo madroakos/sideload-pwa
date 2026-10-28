@@ -1,0 +1,5 @@
+{
+  "name": "sideload", "private": true, "packageManager": "pnpm@10.28.2", "engines": {"node": ">=20"},
+  "scripts": {"dev": "pnpm --parallel --filter './proxy' --filter './web' dev", "build": "pnpm -r build", "test": "vitest run", "typecheck": "pnpm -r typecheck", "start": "pnpm --filter @sideload/proxy start"},
+  "devDependencies": {"typescript": "~5.9.3", "vitest": "^3.2.4", "@types/node": "^22.19.0"}
+}

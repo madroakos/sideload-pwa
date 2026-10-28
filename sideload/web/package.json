@@ -1,0 +1,6 @@
+{
+  "name":"@sideload/web", "private":true, "type":"module",
+  "scripts":{"dev":"vite --host 0.0.0.0", "build":"tsc --noEmit && vite build", "typecheck":"tsc --noEmit"},
+  "dependencies":{"react":"^19.2.0", "react-dom":"^19.2.0", "zustand":"^5.0.8", "lucide-react":"^0.468.0"},
+  "devDependencies":{"@types/react":"^19.2.0", "@types/react-dom":"^19.2.0", "@vitejs/plugin-react":"^5.0.4", "vite":"^7.1.12", "vite-plugin-pwa":"^1.1.0"}
+}

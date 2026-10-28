@@ -1,0 +1,49 @@
+# Builds the Sideload PWA and publishes it to GitHub Pages, so the phone can
+# install it as an app (secure context required for installation). The hosted
+# copy is stateless: it holds no credentials and no TV state — pairing data
+# lives on the TV, and the companion address lives in the phone's localStorage.
+name: pages
+on:
+  push:
+    branches: [main]
+    paths: ['sideload/web/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: sideload/pnpm-lock.yaml
+      - name: Build PWA
+        working-directory: sideload
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @sideload/web exec tsc --noEmit
+          # Project pages are served from /<repo>/; relative assets handle the rest.
+          pnpm --filter @sideload/web exec vite build --base "/${GITHUB_REPOSITORY#*/}/"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: sideload/web/dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

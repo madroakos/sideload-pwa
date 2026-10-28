@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+sideload/proxy/state/
+*.pem
+*.key
+*.p12
+.DS_Store
